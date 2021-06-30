@@ -6,18 +6,23 @@ import org.apache.logging.log4j.*;
 public class Main {
 	public static void main(String[] args) {
 		
+		//Setup for SQL login
 		String url = "jdbc:postgresql://localhost:5432/shoporders";
 		Properties info = new Properties();
 		info.put("user", "postgres");
 		info.put("password", "password");
 		
+		//Scanner for input
 		Scanner scan = new Scanner(System.in);
 		
+		//Instantiates the logger for Maven
 		final Logger log = LogManager.getLogger(Main.class);
 		
+		//Tries to connect to the database
 		try (Connection connection = DriverManager.getConnection(url,info); 
 				Statement statement = connection.createStatement();){
 			
+			//Sets the menu system and loops until the user exits
 			int menu = 0;
 			while (menu != -1) {
 				System.out.println("Enter Menu:\n"
@@ -26,15 +31,14 @@ public class Main {
 						+ "2: Update Existing Entry\n"
 						+ "3: Delete Entry\n"
 						+ "-1: Exit Program\n");
-				menu = scan.nextInt();
-				scan.nextLine();
+				menu = tryParse(scan.nextLine());
 				switch (menu) {
-					//Exit
+					//Exits the loop
 					case -1:
 						log.info("User Exiting Program.");
 						System.out.println("Exiting...");
 						break;
-					//Create
+					//Create new entry
 					case 0:
 						while (menu != -1) {
 							log.info("User Entering New Data.");
@@ -42,9 +46,9 @@ public class Main {
 									+ "0: Customer\n"
 									+ "1: Order\n"
 									+ "-1: Back\n");
-							menu = scan.nextInt();
-							scan.nextLine();
+							menu = tryParse(scan.nextLine());
 							switch(menu) {
+								//Create new customer
 								case 0:
 									System.out.println("Enter Customer First Name:");
 									String first = scan.nextLine();
@@ -53,11 +57,14 @@ public class Main {
 									System.out.println("Enter Customer Affiliation:");
 									String aff = scan.nextLine();
 									int id = getFirstAvailable(statement, 0);
+									//Full command is: INSERT INTO customers (customer_id, first_name, last_name, affiliation) VALUES (id, 'first', 'last', 'aff');
 									String cmd = "INSERT INTO customers (customer_id, first_name, last_name, affiliation) VALUES (" + id + ", '" + first + "', '" + last + "', '" + aff + "');";
 									statement.execute(cmd);
 									log.info("User Entered New Customer.");
+									//Output to let user know they successfully added a new entry
 									System.out.println("Adding new customer: " + first + " " + last + " with customer ID: " + id + ", affiliated with: " + aff);
 									break;
+								//Create new order
 								case 1:
 									System.out.println("Enter Item Name:");
 									String item = scan.nextLine();
@@ -69,21 +76,26 @@ public class Main {
 									System.out.println("Enter Total Cost:");
 									int cost = scan.nextInt();
 									id = getFirstAvailable(statement, 1);
+									//Full command is: INSERT INTO orders (order_id, item, amount, customer_id, price_total) VALUES (id, 'item', amount, cid, cost);
 									cmd = "INSERT INTO orders (order_id, item, amount, customer_id, price_total) VALUES (" + id + ", '" + item + "', " + amount + ", " + cid + ", " + cost + ");";
 									statement.execute(cmd);
 									log.info("User Entered New Order.");
+									//Output to let user know they successfully added a new entry
 									System.out.println("Adding new order with ID: " + id + " of " + amount + " " + item + " for customer with ID: " + cid + ", for a total cost of: " + cost);
 									break;
 								case -1:
+									//Exits the loop
 									break;
 								default:
+									//Command not recognized
 									System.out.println("Command Not Recognized.");
 									log.warn("User Entered Incorrect Command.");
 							}
 						}
+						//Resets menu
 						menu = 0;
 						break;
-					//Read
+					//Read existing entry
 					case 1:
 						while (menu != -1) {
 							log.info("User Reading Data.");
@@ -91,8 +103,7 @@ public class Main {
 									+ "0: Customer\n"
 									+ "1: Order\n"
 									+ "-1: Back\n");
-							menu = scan.nextInt();
-							scan.nextLine();
+							menu = tryParse(scan.nextLine());
 							switch(menu) {
 								case 0:
 									System.out.println("Enter Customer ID or 0 for whole table:");
@@ -130,16 +141,19 @@ public class Main {
 										}
 									}
 									break;
+								//Exits the loop
 								case -1:
 									break;
+								//Command not recognized
 								default:
 									System.out.println("Command Not Recognized.");
 									log.warn("User Entered Incorrect Command.");
 							}
 						}
+						//Resets menu
 						menu = 0;
 						break;
-					//Update
+					//Update existing entry
 					case 2:
 						while (menu != -1) {
 							log.info("User Editing Data.");
@@ -147,8 +161,8 @@ public class Main {
 									+ "0: Customer\n"
 									+ "1: Order\n"
 									+ "-1: Back\n");
-							menu = scan.nextInt();
-							scan.nextLine();
+							menu = tryParse(scan.nextLine());
+							//Update works by stepping through each part of the entry, letting the user type - to skip it
 							switch(menu) {
 								case 0:
 									System.out.println("Enter Customer ID:");
@@ -242,16 +256,19 @@ public class Main {
 												+ "ID: " + res.getInt(1) + "\t| Item: " + res.getString(2) + "\t| Amount: " + res.getInt(3) + "\t| Customer ID: " + res.getInt(4) + "\t| Price Total: " + res.getInt(5) + "\n");
 									}
 									break;
+								//Exits the loop
 								case -1:
 									break;
+								//Command not recognized
 								default:
 									System.out.println("Command Not Recognized");
 									log.warn("User Entered Incorrect Command.");
 							}
 						}
+						//Resets the menu
 						menu = 0;
 						break;
-					//Delete
+					//Delete an entry
 					case 3:
 						while (menu != -1) {
 							log.info("User Deleting Data.");
@@ -259,9 +276,9 @@ public class Main {
 									+ "0: Customer\n"
 									+ "1: Order\n"
 									+ "-1: Back\n");
-							menu = scan.nextInt();
-							scan.nextLine();
+							menu = tryParse(scan.nextLine());
 							switch(menu) {
+								//Deletes a customer and all orders with the same ID
 								case 0:
 									System.out.println("This will also delete all orders by this customer.\n"
 											+ "Enter Customer ID:\n");
@@ -274,6 +291,7 @@ public class Main {
 									System.out.println("Deleting customer with ID " + id + " and all related orders.");
 									log.info("User Deleted Customer and Associated Orders.");
 									break;
+								//Deletes an order, doesn't delete associated customers
 								case 1:
 									System.out.println("Enter Order ID:\n");
 									id = scan.nextInt();
@@ -283,21 +301,26 @@ public class Main {
 									System.out.println("Deleting order with ID " + id + ".");
 									log.info("User Deleted Order.");
 									break;
+								//Exits the loop
 								case -1:
 									break;
+								//Command not recognized
 								default:
 									System.out.println("Command not recognized.");
 									log.warn("User Entered Incorrect Command.");
 							}
 						}
+						//Resets the menu
 						menu = 0;
 						break;
+					//Command not recognized
 					default:
 						System.out.println("Menu Not Recognized");
 						log.warn("User Entered Incorrect Command.");
 				}
 			}
 		}
+		//Catches the SQL exception if necessary or wrong login info
 		catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -307,28 +330,35 @@ public class Main {
 	//Finds first available index
 	public static int getFirstAvailable(Statement stmt, int table) {
 		ResultSet res = null;
+		//Creates an array list
 		ArrayList<Integer> ids = new ArrayList<Integer>();
 		try {
-			//idea: get column 1 and convert to array, use java to sort
+			//For customers
 			if(table == 0) {
 				res = stmt.executeQuery("SELECT customer_id FROM customers");
+				//Adds each index to the array list
 				while (res.next()) {
 					ids.add(res.getInt(1));
 				}
 			}
+			//For orders
 			else if (table == 1) {
 				res = stmt.executeQuery("SELECT order_id FROM orders");
+				//Adds each index to the array list
 				while (res.next()) {
 					ids.add(res.getInt(1));
 				}
 			}
 			else {
+				//Returns negative 1 if wrong table DEBUG ONLY
 				return -1;
 			}
 		}
+		//Error catch
 		catch (SQLException e) {
 			e.printStackTrace();
 		}
+		//Returns the result of findMissing
 		return findMissing(ids);
 	}
 	
@@ -346,10 +376,12 @@ public class Main {
 		return ids.size()+1;
 	}
 	
+	//Tries to parse a number from some input text, returning the int
 	public static Integer tryParse(String text) {
 		try {
 			return Integer.parseInt(text);
 		} catch (NumberFormatException e){
+			//If it can't, returns a null
 			return null;
 		}
 	}
